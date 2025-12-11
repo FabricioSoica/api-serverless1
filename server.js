@@ -5,6 +5,7 @@ const swaggerUi = require('swagger-ui-express');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { S3Client, PutObjectCommand, ListBucketsCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 const { randomUUID } = require('crypto');
 const cors = require("cors");
 
@@ -32,8 +33,13 @@ const s3Client = new S3Client({
   }
 });
 
+const snsClient = new SNSClient({
+  region: process.env.AWS_REGION,
+});
+
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
+const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 
 app.use(cors({
   origin: "*", 
@@ -385,6 +391,27 @@ app.post('/pedidos', async (req, res) => {
     });
 
     await docClient.send(command);
+
+    // Envia notificação SNS
+    const mensagemTemplate = `
+===== NOVO PEDIDO RECEBIDO =====
+
+Cliente: ${nomeCliente}
+Email: ${emailCliente}
+Valor: R$ ${valor}
+Status: ${status}
+
+ID do Pedido: ${pedido.idPedido}
+Data: ${pedido.data}
+
+=================================
+`;
+
+    await snsClient.send(new PublishCommand({
+      TopicArn: SNS_TOPIC_ARN,
+      Subject: "Novo Pedido Recebido",
+      Message: mensagemTemplate
+    }));
 
     res.status(201).json({
       message: 'Pedido criado com sucesso',
