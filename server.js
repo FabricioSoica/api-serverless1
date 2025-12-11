@@ -6,6 +6,7 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { S3Client, PutObjectCommand, ListBucketsCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { randomUUID } = require('crypto');
+const cors = require("cors");
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -34,6 +35,13 @@ const s3Client = new S3Client({
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
+app.use(cors({
+  origin: "*", 
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+
 app.use(express.json());
 
 // Swagger Documentation
@@ -46,7 +54,7 @@ const swaggerDocument = {
   },
   servers: [
     {
-      url: `http://localhost:${process.env.PORT || 3000}`,
+      url: `http://${process.env.APP_HOST || 'localhost'}:${process.env.PORT || 3000}`,
       description: 'Servidor de desenvolvimento'
     }
   ],
@@ -613,9 +621,9 @@ app.get('/pedidos/:idPedido/arquivos', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`Documentação Swagger disponível em http://localhost:${PORT}/swagger`);
+  console.log(`Documentação Swagger disponível em http://seu_ip_publico:${PORT}/swagger`);
 });
 
 module.exports = app;
