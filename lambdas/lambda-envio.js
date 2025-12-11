@@ -1,5 +1,6 @@
 const AWS = require("aws-sdk");
 const http = require("http");
+const https = require("https");
 
 // Configuração AWS usando credenciais do .env (AWS Academy)
 AWS.config.update({
@@ -10,7 +11,8 @@ AWS.config.update({
 });
 
 const dynamo = new AWS.DynamoDB.DocumentClient();
-const EC2_HOST = process.env.EC2_HOST;
+const API_GATEWAY_URL = process.env.API_GATEWAY_URL; // Prioridade: API Gateway
+const EC2_HOST = process.env.EC2_HOST; // Fallback: EC2 direto
 const EC2_PORT = process.env.EC2_PORT || 3000;
 
 exports.handler = async () => {
@@ -56,20 +58,43 @@ exports.handler = async () => {
 function chamarAPI(idPedido) {
   const postData = JSON.stringify({ idPedido });
 
-  const options = {
-    hostname: EC2_HOST,
-    port: EC2_PORT,
-    path: "/lambda/preparacao",
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Content-Length": Buffer.byteLength(postData)
-    },
-    timeout: 10000
-  };
+  let options, protocol;
+
+  // Prioridade: API Gateway (se configurado)
+  if (API_GATEWAY_URL) {
+    const url = new URL(API_GATEWAY_URL);
+    protocol = https;
+    options = {
+      hostname: url.hostname,
+      port: url.port || 443,
+      path: url.pathname,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+    console.log(`Chamando API Gateway: ${API_GATEWAY_URL}`);
+  } else {
+    // Fallback: EC2 direto
+    protocol = http;
+    options = {
+      hostname: EC2_HOST,
+      port: EC2_PORT,
+      path: "/lambda/preparacao",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+    console.log(`Chamando EC2 direto: http://${EC2_HOST}:${EC2_PORT}/lambda/preparacao`);
+  }
 
   return new Promise((resolve, reject) => {
-    const req = http.request(options, (res) => {
+    const req = protocol.request(options, (res) => {
       let body = "";
       res.on("data", chunk => body += chunk.toString());
       res.on("end", () => {

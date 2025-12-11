@@ -368,7 +368,132 @@ function chamarAPI(idPedido) {
    - **Function**: `lambda-envio`
 6. Clique em **Next** → **Next** → **Create rule**
 
-**O que isso faz?** A cada 5 minutos, o EventBridge executa a `lambda-envio`, que busca pedidos com status RECEBIDO há mais de 4 minutos e chama sua API para atualizar o status para PREPARACAO.
+**O que isso faz?** A cada 5 minutos, o EventBridge executa a `lambda-envio`, que busca pedidos com status RECEBIDO há mais de 4 minutos e chama o API Gateway para atualizar o status para PREPARACAO.
+
+---
+
+## 🟡 PASSO 5.5: Criar API Gateway + Lambda `lambda-preparacao`
+
+### 5.5.1 Criar Lambda `lambda-preparacao`
+
+1. **Lambda** → **Functions** → **Create function**
+2. Configure:
+   - **Function name**: `lambda-preparacao`
+   - **Runtime**: Node.js 20.x
+   - **Execution role**: Use o mesmo role do Passo 4.1
+3. Clique em **Create function**
+
+### 5.5.2 Adicionar Código
+
+Cole o código do arquivo `lambdas/lambda-preparacao.js` (já criado no projeto)
+
+### 5.5.3 Configurar Variáveis de Ambiente
+
+1. **Configuration** → **Environment variables** → **Edit**
+2. Adicione:
+   - **Key**: `APP_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
+   - **Key**: `APP_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
+   - **Key**: `APP_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
+   - **Key**: `APP_REGION` → **Value**: `us-east-1`
+3. Clique em **Save**
+
+### 5.5.4 Criar API Gateway
+
+1. Acesse **API Gateway** → **Create API**
+2. Escolha **REST API** → **Build**
+3. Configure:
+   - **API name**: `pedidos-api`
+   - **Endpoint Type**: Regional
+4. Clique em **Create API**
+
+### 5.5.5 Criar Recurso e Método POST
+
+1. Na API criada, clique em **Actions** → **Create Resource**
+2. Configure:
+   - **Resource Name**: `preparacao`
+   - **Resource Path**: `preparacao`
+3. Clique em **Create Resource**
+
+4. Com o recurso `/preparacao` selecionado, clique em **Actions** → **Create Method**
+5. Selecione **POST** → clique no ✓
+6. Configure:
+   - **Integration type**: Lambda Function
+   - **Lambda Function**: `lambda-preparacao`
+   - **Use Lambda Proxy integration**: ✅ (marque)
+7. Clique em **Save** → **OK** (quando pedir permissão)
+
+### 5.5.6 Habilitar CORS e Deploy
+
+1. Com o método POST selecionado, clique em **Actions** → **Enable CORS**
+2. Deixe as configurações padrão → **Enable CORS and replace existing CORS headers**
+3. Clique em **Actions** → **Deploy API**
+4. Configure:
+   - **Deployment stage**: `[New Stage]`
+   - **Stage name**: `prod`
+5. Clique em **Deploy**
+
+6. **Copie a URL do API Gateway** (aparece no topo após deploy)
+   - Formato: `https://xxxxx.execute-api.us-east-1.amazonaws.com/prod/preparacao`
+
+### 5.5.7 Atualizar lambda-envio para usar API Gateway
+
+1. Abra a função `lambda-envio`
+2. Vá em **Configuration** → **Environment variables** → **Edit**
+3. Adicione/Atualize:
+   - **Key**: `API_GATEWAY_URL` → **Value**: (URL do API Gateway copiada acima)
+4. Clique em **Save**
+
+5. Atualize o código da `lambda-envio` para usar o API Gateway:
+
+```javascript
+// Substitua a função chamarAPI por:
+function chamarAPI(idPedido) {
+  const postData = JSON.stringify({ idPedido });
+  const apiUrl = process.env.API_GATEWAY_URL || process.env.EC2_HOST;
+
+  // Se tiver API_GATEWAY_URL, usa HTTPS, senão usa HTTP (EC2)
+  const protocol = apiUrl.startsWith('https://') ? require('https') : require('http');
+  const url = new URL(apiUrl);
+
+  const options = {
+    hostname: url.hostname,
+    port: url.port || (protocol === require('https') ? 443 : 80),
+    path: url.pathname,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(postData)
+    },
+    timeout: 10000
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = protocol.request(options, (res) => {
+      let body = "";
+      res.on("data", chunk => body += chunk.toString());
+      res.on("end", () => {
+        console.log(`API response status: ${res.statusCode}, body: ${body}`);
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(body);
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${body}`));
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("Request timeout"));
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+```
+
+**O que isso faz?** A `lambda-envio` agora chama o API Gateway, que invoca a `lambda-preparacao`, que atualiza o DynamoDB. O DynamoDB Stream então aciona a `lambda-execucao` (que funciona como lambda-notificacao) para enviar o e-mail.
 
 ---
 
