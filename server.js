@@ -423,6 +423,37 @@ Data: ${pedido.data}
   }
 });
 
+// POST - Atualizar status para PREPARACAO (chamado pela lambda-envio)
+app.post('/lambda/preparacao', async (req, res) => {
+  try {
+    const { idPedido } = req.body;
+    
+    if (!idPedido) {
+      return res.status(400).json({ error: 'idPedido é obrigatório' });
+    }
+
+    const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+
+    const updateCommand = new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { idPedido },
+      UpdateExpression: 'SET #s = :s',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':s': 'PREPARACAO' }
+    });
+
+    await docClient.send(updateCommand);
+
+    res.status(200).json({ 
+      message: 'Status atualizado para PREPARACAO',
+      idPedido 
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+    res.status(500).json({ error: 'Erro ao atualizar status', details: error.message });
+  }
+});
+
 // POST - Upload de arquivo no S3 vinculado a um pedido (na raiz do bucket)
 app.post('/pedidos/:idPedido/upload', upload.single('file'), async (req, res) => {
   try {
