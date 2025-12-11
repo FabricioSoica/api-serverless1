@@ -1,5 +1,5 @@
 const AWS = require("aws-sdk");
-const https = require("https");
+const http = require("http");
 
 // Configuração AWS usando credenciais do .env (AWS Academy)
 AWS.config.update({
@@ -69,7 +69,7 @@ function chamarAPI(idPedido) {
   };
 
   return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
+    const req = http.request(options, (res) => {
       let body = "";
       res.on("data", chunk => body += chunk.toString());
       res.on("end", () => {
