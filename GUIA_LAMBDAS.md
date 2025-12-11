@@ -209,12 +209,13 @@ Obrigado por comprar conosco!
 
 1. Vá em **Configuration** → **Environment variables**
 2. Clique em **Edit**
-3. Adicione as seguintes variáveis (use as mesmas credenciais do seu `.env`):
+3. Adicione as seguintes variáveis (use as mesmas credenciais do seu `.env`).
+   > Importante: a Lambda não aceita variáveis que comecem com `AWS_`, por isso usamos nomes próprios.
    - **Key**: `SNS_TOPIC_ARN` → **Value**: `arn:aws:sns:us-east-1:SEU_ACCOUNT_ID:notificacoesPedidos`
-   - **Key**: `AWS_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
-   - **Key**: `AWS_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
-   - **Key**: `AWS_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
-   - **Key**: `AWS_REGION` → **Value**: `us-east-1`
+   - **Key**: `APP_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
+   - **Key**: `APP_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
+   - **Key**: `APP_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
+   - **Key**: `APP_REGION` → **Value**: `us-east-1`
 4. Clique em **Save**
 
 ### 4.4 Adicionar Trigger do DynamoDB Stream
@@ -344,10 +345,10 @@ function chamarAPI(idPedido) {
 2. Adicione:
    - **Key**: `EC2_HOST` → **Value**: `44.220.51.60` (seu IP público da EC2)
    - **Key**: `EC2_PORT` → **Value**: `3000`
-   - **Key**: `AWS_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
-   - **Key**: `AWS_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
-   - **Key**: `AWS_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
-   - **Key**: `AWS_REGION` → **Value**: `us-east-1`
+   - **Key**: `APP_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
+   - **Key**: `APP_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
+   - **Key**: `APP_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
+   - **Key**: `APP_REGION` → **Value**: `us-east-1`
 3. Clique em **Save**
 
 ### 5.4 Criar EventBridge Rule (Agendamento)
@@ -386,10 +387,10 @@ function chamarAPI(idPedido) {
 
 1. **Configuration** → **Environment variables** → **Edit**
 2. Adicione:
-   - **Key**: `AWS_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
-   - **Key**: `AWS_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
-   - **Key**: `AWS_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
-   - **Key**: `AWS_REGION` → **Value**: `us-east-1`
+   - **Key**: `APP_ACCESS_KEY_ID` → **Value**: (sua access key do AWS Academy)
+   - **Key**: `APP_SECRET_ACCESS_KEY` → **Value**: (sua secret key do AWS Academy)
+   - **Key**: `APP_SESSION_TOKEN` → **Value**: (seu session token do AWS Academy, se tiver)
+   - **Key**: `APP_REGION` → **Value**: `us-east-1`
 3. Clique em **Save**
 
 ### 6.3 Adicionar Código
